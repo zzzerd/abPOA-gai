@@ -8,18 +8,54 @@
 #include "abpoa_output.h"
 #include "utils.h"
 #include "abpoa_seed.h"
+#include "kdq.h"
+KDQ_INIT(int)
+#define kdq_int_t kdq_t(int)
+
 
 void gen_simple_mat(abpoa_para_t *abpt) {
     int m = abpt->m, i, j;
     int match = abpt->match < 0 ? -abpt->match : abpt->match;
     int mismatch = abpt->mismatch > 0? -abpt->mismatch : abpt->mismatch;
-    for (i = 0; i < m - 1; ++i) {
+    for (i = 0; i < m; ++i){
+        abpt->mat[i] = 0;
+    }
+    for (i = 1; i < m ; ++i){
+        abpt->mat[i * m] = 0;
+        for (j = 1; j < m; ++j){
+            abpt->mat[i * m + j] = ((i&j) == 0) ? mismatch : match;
+        }
+    }
+    /* for(i = 0 ; i <m ; i++){
+        for(j = 0 ; j< m; j++)
+            fprintf(stderr,"mat[%d,%d]:%d\t",i,j,abpt->mat[i * m + j]);
+        fprintf(stderr,"\n");
+    } */
+/*     for (i = 0; i < m - 1; ++i) {
         for (j = 0; j < m - 1; ++j)
             abpt->mat[i * m + j] = i == j ? match : mismatch;
         abpt->mat[i * m + m - 1] = 0;
     }
+
+        for (j = 0; j < m ; ++j){
+            if(j == 0 || j == 3){
+                abpt->mat[5 * m + j] = match;
+                abpt->mat[6 * m + j] = mismatch;
+            }
+            if(j == 1 || j == 2){
+                abpt->mat[5 * m + j] = mismatch;
+                abpt->mat[6 * m + j] = match;
+            }
+            if(j == 4){
+                abpt->mat[5 * m + j] = 0;
+                abpt->mat[6 * m + j] = 0;
+            }
+        }
+
+    
+
     for (j = 0; j < m; ++j)
-        abpt->mat[(m - 1) * m + j] = 0;
+        abpt->mat[(m - 1) * m + j] = 0; */
     abpt->max_mat = match;
     abpt->min_mis = -mismatch;
 }
@@ -95,7 +131,7 @@ abpoa_para_t *abpoa_init_para(void) {
     abpt->align_mode = ABPOA_GLOBAL_MODE;
     abpt->gap_mode = ABPOA_CONVEX_GAP;
     abpt->zdrop = -1;     // disable zdrop
-    abpt->end_bonus = -1; // disable end bouns
+    abpt->end_bonus = -1; // disable end bonus
     abpt->wb = ABPOA_EXTRA_B; // extra bandwidth
     abpt->wf = ABPOA_EXTRA_F; // extra bandwidth
 
@@ -113,8 +149,8 @@ abpoa_para_t *abpoa_init_para(void) {
     abpt->out_pog = NULL; // dump partial order graph to file
 
     // number of residue types
-    abpt->m = 5; // nucleotide
-    abpt->mat = (int*)_err_malloc(abpt->m * abpt->m * sizeof(int));
+    abpt->m = 16; // nucleotide
+    abpt->mat = (int*)_err_malloc(abpt->m* abpt->m * sizeof(int));
 
     // score matrix
     abpt->use_score_matrix = 0;
@@ -142,8 +178,9 @@ abpoa_para_t *abpoa_init_para(void) {
 
 void abpoa_post_set_para(abpoa_para_t *abpt) {
     abpoa_set_gap_mode(abpt);
+    abpt->use_read_ids = 1;
     if (abpt->out_msa || abpt->out_gfa || abpt->max_n_cons > 1) {
-        abpt->use_read_ids = 1;
+        
         set_65536_table();
         if (abpt->max_n_cons > 1) set_bit_table16();
     }
@@ -297,7 +334,14 @@ int abpoa_anchor_poa(abpoa_t *ab, abpoa_para_t *abpt, uint8_t **seqs, int **weig
     // err_func_format_printf(__func__, "Performing POA between anchors done.");
     return 0;
 }
-
+uint8_t convertbase(uint8_t base){
+    
+     if(base == 1) base = 8;
+     else if(base == 2) base = 4;
+     else if(base == 4) base = 2;
+     else if(base == 8) base = 1;
+     return base;
+}
 // simply partial order alignment, no seeding-based anchor or progressive tree
 int abpoa_poa(abpoa_t *ab, abpoa_para_t *abpt, uint8_t **seqs, int **weights, int *seq_lens, int exist_n_seq, int n_seq) {
     // err_func_format_printf(__func__, "Performing POA ...");
@@ -305,6 +349,7 @@ int abpoa_poa(abpoa_t *ab, abpoa_para_t *abpt, uint8_t **seqs, int **weights, in
     abpoa_res_t res; int i, j, read_id, qlen, tot_n_seq = exist_n_seq + n_seq;
     uint8_t *qseq, *rc_qseq; int *weight, *rc_weight;
     // uint8_t *seq1;
+    improve_graph(ab->abg, ABPOA_SRC_NODE_ID, ABPOA_SINK_NODE_ID, tot_n_seq);//新增
     for (i = 0; i < n_seq; ++i) {
         qlen = seq_lens[i]; qseq = seqs[i]; weight = weights[i]; read_id = exist_n_seq + i;
 #ifdef __DEBUG__
@@ -315,8 +360,8 @@ int abpoa_poa(abpoa_t *ab, abpoa_para_t *abpt, uint8_t **seqs, int **weights, in
             if (abpt->amb_strand && (res.best_score < MIN_OF_TWO(qlen, ab->abg->node_n-2) * abpt->max_mat * .3333)) { // TODO .3333
                 rc_qseq = (uint8_t*)_err_malloc(sizeof(uint8_t) * qlen);
                 for (j = 0; j < qlen; ++j) {
-                    if (qseq[qlen-j-1] < 4) rc_qseq[j] = 3 - qseq[qlen-j-1];
-                    else rc_qseq[j] = 4;
+                     rc_qseq[j] = convertbase(qseq[qlen-j-1]);
+
                 }
                 rc_weight = (int*)_err_malloc(sizeof(int) * qlen);
                 for (j = 0; j < qlen; ++j) {
@@ -335,10 +380,11 @@ int abpoa_poa(abpoa_t *ab, abpoa_para_t *abpt, uint8_t **seqs, int **weights, in
                 if (rc_res.n_cigar) free(rc_res.graph_cigar);
             } 
         }
-        abpoa_add_graph_alignment(ab, abpt, qseq, weight, qlen, NULL, res, read_id, tot_n_seq, 1);
+        //abpoa_add_graph_alignment(ab, abpt, qseq, weight, qlen, NULL, res, read_id, tot_n_seq, 1);
         if (abs->is_rc[read_id]) { free(qseq); free(weight); }
         if (res.n_cigar) free(res.graph_cigar);
     }
+    //recover_graph(ab->abg, ABPOA_SRC_NODE_ID, ABPOA_SINK_NODE_ID, tot_n_seq);
     // err_func_format_printf(__func__, "Performing POA ... done.");
     return 0;
 }
@@ -435,13 +481,149 @@ int abpoa_msa(abpoa_t *ab, abpoa_para_t *abpt, int n_seq, char **seq_names, int 
     for (i = 0; i < n_seq; ++i) free(weights[i]); free(weights);
     return 0;
 }
+abpoa_graph_t *improve_graph(abpoa_graph_t *abg, int src_id, int sink_id, int tot_n_seq){
+    int *id, cur_id, out_id;
+    int q_size;
+   // int ceshirudu;
+    int read_ids_n = (tot_n_seq-1)/64+1;
+    int new_q_size =0;
+    int *in_degree = (int*)_err_malloc(abg->node_n * sizeof(int));
+    //int zongshu = abg->node_n;
+    
+        for (int i = 0; i < abg->node_n; ++i) {
+        if(abg->node[i].isok == 0) continue;
+        in_degree[i] = abg->node[i].in_edge_n;
+    }
+    kdq_int_t *q = kdq_init_int();
+    kdq_push_int(q, src_id); q_size = 1; 
+    while (q_size > 0){
+            if ((id = kdq_shift_int(q)) == 0) err_fatal_simple("Error in queue.");
+            if(abg->node[*id].isok == 0) continue;
+            if (*id == sink_id) {
+            kdq_destroy_int(q); free(in_degree);
+            return abg;
+            }
+            cur_id = *id;
+            //fprintf(stderr,"cur_id = %d\n",cur_id);
+            int num_out_node = abg->node[cur_id].out_edge_n;
+            int num_out_id[num_out_node];
+            for(int fg = 0; fg<abg->node[cur_id].out_edge_n;fg++){
+                num_out_id[fg] = abg->node[cur_id].out_id[fg];
+                
+            }
+           
+            if(num_out_node > 1){
+                int k_1 = 0 ;
+                int k_2 = 0;
+                for( k_1 = 0 ;k_1<num_out_node-1;k_1++){
+                    int k_1id = num_out_id[k_1];
+                    if(abg->node[k_1id].isok == 0) continue;
+                    for( k_2 = k_1+1;k_2<num_out_node;k_2++){
+                        int k_2id = num_out_id[k_2];
+                        if(abg->node[k_2id].isok == 0) continue;
+                        if((abg->node[k_1id].in_edge_n == 1)&&(abg->node[k_2id].in_edge_n == 1)&&
+                        (abg->node[k_1id].out_edge_n == 1)&&(abg->node[k_2id].out_edge_n == 1)&&
+                        (abg->node[k_1id].in_id[0] == abg->node[k_2id].in_id[0])&&
+                        (abg->node[k_1id].out_id[0] == abg->node[k_2id].out_id[0]))
+                           {
+                                    abg->node[k_1id].raw_base = abg->node[k_1id].base;
+                                    abg->node[k_1id].base = abg->node[k_1id].base | abg->node[k_2id].base;
+                                    abg->node[k_2id].isok = 0;
+                                    abg->node[k_1id].isok = 2;
+                                   if(abg->node[k_1id].heaviest_weight == NULL) abg->node[k_1id].heaviest_weight = (uint8_t *)calloc(1, sizeof(uint8_t));
+                                        int pri_id = abg->node[k_1id].in_id[0];
+                                        int k_1_outweight = 0;
+                                        int k_2_outweight = 0;
+                                        for(int z = 0 ; z < abg ->node[pri_id].out_edge_n; z++){
+                                            if(k_2id == abg ->node[pri_id].out_id[z]) k_2_outweight = abg ->node[pri_id].out_weight[z];
+                                            if(k_1id == abg ->node[pri_id].out_id[z]) k_1_outweight = abg ->node[pri_id].out_weight[z];
+                                        }
+                                        int pri_base = abg ->node[pri_id].base;
+                                        if(k_1_outweight >  abg->node[k_1id].heaviest_weight[0])  abg->node[k_1id].heaviest_weight[0] = abg->node[k_1id].raw_base;
+                                        if(k_2_outweight >  abg->node[k_1id].heaviest_weight[0])  abg->node[k_1id].heaviest_weight[0] = abg->node[k_2id].base;
+                                            for(int z = 0 ; z < abg ->node[pri_id].out_edge_n; z++){ 
+                                                if(k_2id == abg ->node[pri_id].out_id[z]){
+                                                  //  abg ->node[pri_id].out_weight[z]=0;
+                                                        /* for(int y = 0 ; y< read_ids_n ; y++){
+                                                            abg ->node[pri_id].read_ids[z][y]=0;
+                                                        } */
+                                                        if(z+1 == abg ->node[pri_id].out_edge_n) {
+                                                            abg ->node[pri_id].out_edge_n--;
+                                                        }else{
+                                                                for(int x = z ; x < abg ->node[pri_id].out_edge_n-1 ; x++){
+                                                                    abg ->node[pri_id].out_id[x] = abg ->node[pri_id].out_id[x+1];
+                                                                    abg ->node[pri_id].out_weight[x] = abg ->node[pri_id].out_weight[x+1];
+                                                                    /* for(int y = 0 ; y< read_ids_n;y++){
+                                                                        abg ->node[pri_id].read_ids[x][y] =abg ->node[pri_id].read_ids[x+1][y];
+                                                                    } */
+                                                                 }
+                                                                 abg ->node[pri_id].out_edge_n--;
+                                                              }
+                                                    break;
+                                                }
+                                            }
+                                        int aft_id = abg->node[k_1id].out_id[0];
+                                        for(int op = 0 ; op < abg ->node[aft_id].in_edge_n; op++){
+                                            if(k_2id == abg ->node[aft_id].in_id[op]){
+                                                if(op+1 == abg ->node[aft_id].in_edge_n) {
+                                                    abg ->node[aft_id].in_edge_n--;
+                                                    in_degree[aft_id]--;
+                                                }else{
+                                                        for(int x = op+1 ; x < abg ->node[aft_id].in_edge_n ; x++){
+                                                            abg ->node[aft_id].in_id[x-1] = abg ->node[aft_id].in_id[x];
+                                                        }
+                                                        abg ->node[aft_id].in_edge_n--;
+                                                        in_degree[aft_id]--;
+                                                    }
+                                                break;
+                                            }
+                                        }
+                                    
+                                    if (abg ->node[k_2id].in_edge_m > 0) free(abg ->node[k_2id].in_id);
+                                    if (abg ->node[k_2id].out_edge_m > 0) {
+                                        free(abg ->node[k_2id].out_id); free(abg ->node[k_2id].out_weight);
+                                        if (abg ->node[k_2id].read_ids_n > 0) {
+                                            for (int j = 0; j < abg ->node[k_2id].out_edge_m; ++j) {
+                                                free(abg ->node[k_2id].read_ids[j]);
+                                            } 
+                                            free(abg ->node[k_2id].read_ids);
+                                        }
+                                    }
+                                    if (abg ->node[k_2id].m_read > 0) free(abg ->node[k_2id].read_weight);
+                                    if (abg ->node[k_2id].aligned_node_m > 0) free(abg ->node[k_2id].aligned_node_id); 
+                                
+                            }
+                    }
+                }
+            }
+            for (int i = 0; i < abg->node[cur_id].out_edge_n; ++i) {
+                out_id = abg->node[cur_id].out_id[i];
+                if (--in_degree[out_id] == 0) {
+                    kdq_push_int(q, out_id);
+                    ++new_q_size;
+                }
+            }
+        //fprintf(stderr,"%d,,,%d\n",out_id,in_degree[out_id]);
+        if (--q_size == 0) {
+            q_size = new_q_size;
+            new_q_size = 0;
+        }
+        
+
+        
+
+    }
+       err_fatal_simple("Failed improve");
+   }
+   
+
 
 int abpoa_msa1(abpoa_t *ab, abpoa_para_t *abpt, char *read_fn, FILE *out_fp) {
     if (!abpt->out_msa && !abpt->out_cons && !abpt->out_gfa) return 0;
     abpoa_reset(ab, abpt, 1024);
     if (abpt->incr_fn) abpoa_restore_graph(ab, abpt); // restore existing graph
     abpoa_seq_t *abs = ab->abs; int exist_n_seq = abs->n_seq;
-
+    
     // read seq from read_fn
     gzFile readfp = xzopen(read_fn, "r"); kseq_t *ks = kseq_init(readfp);
     int i, j, n_seq = abpoa_read_seq(abs, ks);
@@ -454,13 +636,14 @@ int abpoa_msa1(abpoa_t *ab, abpoa_para_t *abpt, char *read_fn, FILE *out_fp) {
 
     // set seqs, seq_lens
     extern char ab_char26_table[256];
+    extern char improve_table[256];
     uint8_t **seqs = (uint8_t**)_err_malloc(n_seq * sizeof(uint8_t*)); int *seq_lens = (int*)_err_malloc(n_seq * sizeof(int));
     int **weights = (int**)_err_malloc(n_seq * sizeof(int*));
     for (i = 0; i < n_seq; ++i) {
         seq_lens[i] = abs->seq[exist_n_seq+i].l;
         seqs[i] = (uint8_t*)_err_malloc(sizeof(uint8_t) * seq_lens[i]);
         weights[i] = (int*)_err_malloc(sizeof(int) * seq_lens[i]);
-        for (j = 0; j < seq_lens[i]; ++j) seqs[i][j] = ab_char26_table[(int)abs->seq[exist_n_seq+i].s[j]];
+        for (j = 0; j < seq_lens[i]; ++j) seqs[i][j] = improve_table[(int)abs->seq[exist_n_seq+i].s[j]];
         if (abpt->use_qv && abs->qual[exist_n_seq+i].l > 0) {
             for (j = 0; j < seq_lens[i]; ++j) weights[i][j] = (int)abs->qual[exist_n_seq+i].s[j]-32;
         } else {
@@ -469,6 +652,7 @@ int abpoa_msa1(abpoa_t *ab, abpoa_para_t *abpt, char *read_fn, FILE *out_fp) {
     }
     if ((abpt->disable_seeding && abpt->progressive_poa==0) || abpt->align_mode != ABPOA_GLOBAL_MODE) {
         abpoa_poa(ab, abpt, seqs, weights, seq_lens, exist_n_seq, n_seq);
+        
     } else {
         // sequence pos to node id
         int *tpos_to_node_id = (int*)_err_calloc(max_len, sizeof(int)), *qpos_to_node_id = (int*)_err_calloc(max_len, sizeof(int));
@@ -491,9 +675,9 @@ int abpoa_msa1(abpoa_t *ab, abpoa_para_t *abpt, char *read_fn, FILE *out_fp) {
         free(read_id_map); free(tpos_to_node_id); free(qpos_to_node_id); free(par_c);
         if (par_anchors.m > 0) free(par_anchors.a);
     }
-
+    
     // output
-    abpoa_output(ab, abpt, out_fp);
+    //abpoa_output(ab, abpt, out_fp);
 
     kseq_destroy(ks); gzclose(readfp);
     for (i = 0; i < n_seq; ++i) {

@@ -30,6 +30,45 @@ unsigned char ab_nt4_table[256] = {
        4, 4, 4, 4,  4, 4, 4, 4,  4, 4, 4, 4,  4, 4, 4, 4, 
        4, 4, 4, 4,  4, 4, 4, 4,  4, 4, 4, 4,  4, 4, 4, 4
 };
+unsigned char improve_table[256] = {
+       1, 2, 4, 8,  0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0, 
+       0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0, 
+       0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0,  0, 0 /*'-'*/, 0, 0,
+       0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0, 
+       0, 1, 0, 2,  0, 0, 0, 4,  0, 0, 0, 0,  0, 0, 0, 0, 
+       0, 0, 0, 0,  8, 8, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0, 
+       0, 1, 0, 2,  0, 0, 0, 4,  0, 0, 0, 0,  0, 0, 0, 0, 
+       0, 0, 0, 0,  8, 8, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0, 
+       0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0, 
+       0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0, 
+       0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0, 
+       0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0, 
+       0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0, 
+       0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0, 
+       0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0, 
+       0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0
+};
+
+
+const char improve_char256_table[256] = {
+       'N', 'A', 'C', 'N',  'G', 'N', 'N', 'N',  'T', 'N', 'N', 'N',  'N', 'N', 'N', 'N', 
+       'N', 'N', 'N', 'N',  'N', 'N', 'N', 'N',  'N', 'N', 'N', 'N',  'N', 'N', 'N', 'N', 
+       'N', 'N', 'N', 'N',  'N', 'N', 'N', 'N',  'N', 'N', 'N', 'N',  'N', 'N' /*'-'*/, 'N', 'N',
+       'N', 'N', 'N', 'N',  'N', 'N', 'N', 'N',  'N', 'N', 'N', 'N',  'N', 'N', 'N', 'N', 
+       'N', 'N', 'N', 'N',  'N', 'N', 'N', 'N',  'N', 'N', 'N', 'N',  'N', 'N', 'N', 'N', 
+       'N', 'N', 'N', 'N',  'N', 'N', 'N', 'N',  'N', 'N', 'N', 'N',  'N', 'N', 'N', 'N', 
+       'N', 'N', 'N', 'N',  'N', 'N', 'N', 'N',  'N', 'N', 'N', 'N',  'N', 'N', 'N', 'N', 
+       'N', 'N', 'N', 'N',  'N', 'N', 'N', 'N',  'N', 'N', 'N', 'N',  'N', 'N', 'N', 'N', 
+       'N', 'N', 'N', 'N',  'N', 'N', 'N', 'N',  'N', 'N', 'N', 'N',  'N', 'N', 'N', 'N', 
+       'N', 'N', 'N', 'N',  'N', 'N', 'N', 'N',  'N', 'N', 'N', 'N',  'N', 'N', 'N', 'N', 
+       'N', 'N', 'N', 'N',  'N', 'N', 'N', 'N',  'N', 'N', 'N', 'N',  'N', 'N', 'N', 'N', 
+       'N', 'N', 'N', 'N',  'N', 'N', 'N', 'N',  'N', 'N', 'N', 'N',  'N', 'N', 'N', 'N', 
+       'N', 'N', 'N', 'N',  'N', 'N', 'N', 'N',  'N', 'N', 'N', 'N',  'N', 'N', 'N', 'N', 
+       'N', 'N', 'N', 'N',  'N', 'N', 'N', 'N',  'N', 'N', 'N', 'N',  'N', 'N', 'N', 'N', 
+       'N', 'N', 'N', 'N',  'N', 'N', 'N', 'N',  'N', 'N', 'N', 'N',  'N', 'N', 'N', 'N', 
+       'N', 'N', 'N', 'N',  'N', 'N', 'N', 'N',  'N', 'N', 'N', 'N',  'N', 'N', 'N', 'N'
+};
+
 
 // 65,97=>A, 67,99=>C, 71,103=>G, 84,85,116,117=>T, else=>N
 const char ab_nt256_table[256] = {
@@ -491,7 +530,7 @@ int abpoa_gfa_parse_P(abpoa_graph_t *abg, abpoa_seq_t *abs, seg_seq_t *segs, int
                 pos = kh_put(abstr, seg_name2in_id, seg_name->s, &absent);
                 if (absent) { // add node for seg_seq
                     for (i = 0; i < (int)seg_seq->l; ++i) {
-                        id = abpoa_add_graph_node(abg, ab_char26_table[(int)(seg_seq->s[i])]);
+                        id = abpoa_add_graph_node(abg, improve_table[(int)(seg_seq->s[i])]);
                         if (i == 0) in_id = id;
                         if (i == (int)seg_seq->l-1) out_id = id;
                     }
@@ -524,7 +563,7 @@ int abpoa_gfa_parse_P(abpoa_graph_t *abg, abpoa_seq_t *abs, seg_seq_t *segs, int
                 pos = kh_put(abstr, seg_name2in_id, seg_name->s, &absent);
                 if (absent) { // add node for seg_seq
                     for (i = 0; i < (int)seg_seq->l; ++i) {
-                        id = abpoa_add_graph_node(abg, ab_char26_table[(int)(seg_seq->s[i])]);
+                        id = abpoa_add_graph_node(abg, improve_table[(int)(seg_seq->s[i])]);
                         if (i == 0) in_id = id;
                         if (i == (int)seg_seq->l-1) out_id = id;
                     }
@@ -557,7 +596,7 @@ int abpoa_gfa_parse_P(abpoa_graph_t *abg, abpoa_seq_t *abs, seg_seq_t *segs, int
 }
 
 int abpoa_fa_parse_seq(abpoa_graph_t *abg, abpoa_seq_t *abs, kstring_t *seq, kstring_t *name, int add_read_id, int p_i, int p_n, int **rank2node_id) {
-    if (*rank2node_id == 0) {
+    if (*rank2node_id == 0) {   //ret = abpoa_fa_parse_seq(abg, abs, seqs->seq+seqs->n, seqs->name+seqs->n, add_read_id, p_i, p_i+1, &rank2node_id);
         *rank2node_id = (int*)_err_calloc(seq->l, sizeof(int));
     } 
     char *s = seq->s;

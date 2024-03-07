@@ -83,14 +83,17 @@ typedef struct {
 typedef struct {
     int node_id;
     int in_edge_n, in_edge_m, *in_id;
-    int out_edge_n, out_edge_m, *out_id; int *out_weight;
+    int out_edge_n,out_edge_m, *out_id; int *out_weight;
     int *read_weight, n_read, m_read; // weight of each read, valid when use_qv=1
     uint64_t **read_ids; int read_ids_n; // for each edge
-
+    uint8_t *heaviest_weight;
+    uint8_t raw_base;
     int aligned_node_n, aligned_node_m, *aligned_node_id; // mismatch; aligned node will have same rank
     // int heaviest_weight, heaviest_out_id; // for consensus
     uint8_t base; // 0~m
     // ID, pos ???
+    uint8_t isok;
+   // int another_node_id;
 } abpoa_node_t;
 
 typedef struct {
@@ -154,7 +157,9 @@ void abpoa_reset(abpoa_t *ab, abpoa_para_t *abpt, int qlen);
 
 // restore graph from GFA/FASTA file
 abpoa_t *abpoa_restore_graph(abpoa_t *ab, abpoa_para_t *abpt);
-
+abpoa_graph_t *improve_graph(abpoa_graph_t *abg, int src_id, int sink_id, int tot_n_seq);
+//abpoa_graph_t *recover_graph(abpoa_graph_t *abg, int src_id, int sink_id, int tot_n_seq);
+uint8_t convertbase(uint8_t base);
 // for development:
 // align a sequence to a graph
 int abpoa_align_sequence_to_graph(abpoa_t *ab, abpoa_para_t *abpt, uint8_t *query, int qlen, abpoa_res_t *res);

@@ -8,6 +8,7 @@
 #include "kdq.h"
 
 extern char ab_char256_table[256];
+extern char improve_char256_table[256];
 char ab_LogTable65536[65536];
 char ab_bit_table16[65536];
 
@@ -196,7 +197,7 @@ void abpoa_generate_gfa(abpoa_t *ab, abpoa_para_t *abpt, FILE *out_fp) {
         } else {
             if (cur_id != ABPOA_SRC_NODE_ID) {
                 // output node
-                fprintf(out_fp, "S\t%d\t%c\n", cur_id-1, ab_char256_table[abg->node[cur_id].base]);
+                fprintf(out_fp, "S\t%d\t%c\n", cur_id-1, improve_char256_table[abg->node[cur_id].base]);
                 // output all links based pre_ids
                 for (i = 0; i < abg->node[cur_id].in_edge_n; ++i) {
                     pre_id = abg->node[cur_id].in_id[i];
@@ -370,6 +371,7 @@ void abpoa_heaviest_bundling(abpoa_graph_t *abg, int src_id, int sink_id, int *o
         cur_id = *id;
         if (cur_id == sink_id) {
             max_out_id[cur_id] = -1;
+            //fprintf(stderr,"max_out_id[cur_id]:%d,,,cur_id:%d\n",max_out_id[cur_id],cur_id);
             score[cur_id] = 0;
         } else {
             max_id = -1;
@@ -385,6 +387,7 @@ void abpoa_heaviest_bundling(abpoa_graph_t *abg, int src_id, int sink_id, int *o
                     }
                 }
                 max_out_id[cur_id] = max_id;
+                //fprintf(stderr,"max_out_id[cur_id]:%d,,,cur_id:%d\n",max_out_id[cur_id],cur_id);
                 kdq_destroy_int(q);
                 break;
             } else {
@@ -400,6 +403,7 @@ void abpoa_heaviest_bundling(abpoa_graph_t *abg, int src_id, int sink_id, int *o
                 }
                 score[cur_id] = max_w + score[max_id];
                 max_out_id[cur_id] = max_id;
+               // fprintf(stderr,"max_out_id[cur_id]:%d,,,cur_id:%d\n",max_out_id[cur_id],cur_id);
             }
         }
         for (i = 0; i < abg->node[cur_id].in_edge_n; ++i) {
@@ -508,7 +512,7 @@ void abpoa_output_fx_consensus(abpoa_t *ab, abpoa_para_t *abpt, FILE *out_fp) {
         }
         fprintf(out_fp, "\n");
         for (j = 0; j < abc->cons_len[cons_i]; ++j) {
-            fprintf(out_fp, "%c", ab_char256_table[abc->cons_base[cons_i][j]]);
+            fprintf(out_fp, "%c", improve_char256_table[abc->cons_base[cons_i][j]]);
         } fprintf(out_fp, "\n");
         if (abpt->out_fq) {
             fprintf(out_fp, "+Consensus_sequence");

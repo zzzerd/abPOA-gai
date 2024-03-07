@@ -56,6 +56,7 @@ void abpoa_dump_pog(abpoa_t *ab, abpoa_para_t *abpt) {
     fprintf(fp, "digraph ABPOA_graph {\n\tgraph [rankdir=\"%s\"];\n\tnode [width=%f, style=%s, fixedsize=%s, shape=%s];\n", rankdir, node_width, node_style, node_fixedsize, node_shape);
 
     for (i = 0; i < abg->node_n; ++i) {
+        if(abg->node[i].isok == 0) continue;
         id = abpoa_graph_index_to_node_id(abg, i);
         index = i;
         if (id == ABPOA_SRC_NODE_ID) {
@@ -80,6 +81,7 @@ void abpoa_dump_pog(abpoa_t *ab, abpoa_para_t *abpt) {
     }
     int x_index = -1;
     for (i = 0; i < abg->node_n; ++i) {
+        if(abg->node[i].isok == 0) continue;
         id = abpoa_graph_index_to_node_id(abg, i);
         // out_edge
         for (j = 0; j < abg->node[id].out_edge_n; ++j) {
@@ -108,7 +110,9 @@ void abpoa_dump_pog(abpoa_t *ab, abpoa_para_t *abpt) {
     }
     fprintf(fp, "}\n");
 
-    for (i = 0; i < abg->node_n; ++i) free(node_label[i]); free(node_label);
+    for (i = 0; i < abg->node_n; ++i) {
+        //if(abg->node[i].isok == 0) continue;
+        free(node_label[i]); free(node_label);}
     err_fclose(fp);
 
     char cmd[1024];

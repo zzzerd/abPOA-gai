@@ -381,6 +381,7 @@ int abpoa_poa(abpoa_t *ab, abpoa_para_t *abpt, uint8_t **seqs, int **weights, in
             } 
         }
         //abpoa_add_graph_alignment(ab, abpt, qseq, weight, qlen, NULL, res, read_id, tot_n_seq, 1);
+        ab->abg->is_topological_sorted = 0;
         if (abs->is_rc[read_id]) { free(qseq); free(weight); }
         if (res.n_cigar) free(res.graph_cigar);
     }

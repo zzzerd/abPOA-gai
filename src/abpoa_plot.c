@@ -110,9 +110,7 @@ void abpoa_dump_pog(abpoa_t *ab, abpoa_para_t *abpt) {
     }
     fprintf(fp, "}\n");
 
-    for (i = 0; i < abg->node_n; ++i) {
-        //if(abg->node[i].isok == 0) continue;
-        free(node_label[i]); free(node_label);}
+    for (i = 0; i < abg->node_n; ++i) {if(abg->node[i].isok == 0) continue;free(node_label[i]); free(node_label);}
     err_fclose(fp);
 
     char cmd[1024];

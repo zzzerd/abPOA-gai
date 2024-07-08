@@ -16,7 +16,7 @@ char PROG[20] = "abpoa";
 #define _bO BOLD UNDERLINE "O" NONE
 #define _bA BOLD UNDERLINE "A" NONE
 char DESCRIPTION[100] = _ba "daptive " _bb "anded " _bP "artial " _bO "rder " _bA "lignment";
-char VERSION[20] = "1.4.1";
+char VERSION[20] = "1.5.1";
 char CONTACT[30] = "gaoy1@chop.edu";
 
 const struct option abpoa_long_opt [] = {
@@ -54,6 +54,7 @@ const struct option abpoa_long_opt [] = {
 
     { "help", 0, NULL, 'h' },
     { "version", 0, NULL, 'v' },
+    { "verbose", 1, NULL, 'V'},
 
     { 0, 0, 0, 0}
 };
@@ -122,6 +123,7 @@ int abpoa_usage(void)
 
     err_printf("    -h --help               print this help usage information\n");
     err_printf("    -v --version            show version number\n");
+    err_printf("    -V --verbose     INT    verbose level (0-2). 0: none, 1: information, 2: debug [0]\n");
 
 
     err_printf("\n");

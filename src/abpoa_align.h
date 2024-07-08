@@ -53,7 +53,7 @@ static inline void abpoa_res_copy(abpoa_res_t *dest, abpoa_res_t *src) {
 
 static inline abpoa_cigar_t *abpoa_push_cigar(int *n_cigar, int *m_cigar, abpoa_cigar_t *cigar, int op, int len, int32_t node_id, int32_t query_id) {
     abpoa_cigar_t l = len;
-    if (*n_cigar == 0 || (op != ABPOA_CINS && op != ABPOA_CSOFT_CLIP && op != ABPOA_CHARD_CLIP) || op != (cigar[(*n_cigar)-1] & 0xf)) {
+    if (*n_cigar == 0 || (op != ABPOA_CINS && op != ABPOA_CSOFT_CLIP && op != ABPOA_CHARD_CLIP) || op != (int)(cigar[(*n_cigar)-1] & 0xf)) {
         if (*n_cigar == *m_cigar) {
             *m_cigar = *m_cigar? (*m_cigar)<<1 : 4;
             cigar = (abpoa_cigar_t*)_err_realloc(cigar, (*m_cigar) * sizeof(abpoa_cigar_t));
@@ -95,22 +95,28 @@ static inline abpoa_cigar_t *abpoa_reverse_cigar(int n_cigar, abpoa_cigar_t *cig
     return cigar;
 }
 extern const char improve_char256_table[256];
-
-static inline void abpoa_print_cigar(int n_cigar, abpoa_cigar_t *cigar, abpoa_graph_t *graph, uint8_t *query) {
-    int i, node_id, query_id; int op, len;
-    int pri_node = 0;
+static inline void abpoa_print_cigar(int n_cigar, abpoa_cigar_t *cigar, abpoa_graph_t *graph,uint8_t *query) {
+    int i, node_id, query_id, index_i; int op, len;int pri_node = 0;
     int n[6] = {0, 0, 0, 0, 0, 0};
-    fprintf(stdout,">\n");
+   // fprintf(stdout,">\n");
     for (i = 0; i < n_cigar; ++i) {
         op = cigar[i] & 0xf; node_id = (int)(cigar[i] >> 34); 
         len = query_id = (int)(cigar[i] >> 4) & 0x3fffffff;
         if (op == ABPOA_CMATCH || op == ABPOA_CDIFF) {
-            //index_i = abpoa_graph_node_id_to_index(graph, node_id);
-           // printf("1%c:%d,%d\t", ABPOA_CIGAR_STR[op], index_i, query_id);
-            if(graph->node[node_id].base & query[query_id]) fprintf(stdout,"%c",improve_char256_table[query[query_id]]);
+            index_i = abpoa_graph_node_id_to_index(graph, node_id);
+         //  if((graph->node[node_id].base & query[query_id])!=0) fprintf(stdout,"1%c",'=');
+         //   else fprintf(stdout,"1%c",'X');
+         //   if((graph->node[node_id].base & query[query_id])!=0) op=op+4;
+        //   if((graph->node[node_id].base & query[query_id])!=0)fprintf(stdout,"1%c(%d/%d,%d)",'=',index_i,node_id,query_id);
+        //   else fprintf(stdout,"1%c(%d/%d,%d)",'X',index_i,node_id,query_id);
+            if((graph->node[node_id].base & query[query_id])!=0)fprintf(stdout,"1%c(%d,%d)",'=',node_id,query_id);
+            else fprintf(stdout,"1%c(%d,%d)",'X',node_id,query_id);
+            if(graph->node[node_id].isok == 2)fprintf(stdout,"!");
+            //fprintf(stdout,"1%c:%d,%d\t", ABPOA_CIGAR_STR[op], index_i, query_id);
+            /* if(graph->node[node_id].base & query[query_id]) fprintf(stdout,"%c",improve_char256_table[query[query_id]]);
             else if(graph->node[node_id].isok ==1) fprintf(stdout,"%c",improve_char256_table[graph->node[node_id].base]);
             else{
-                if(pri_node != 0 && graph->node[node_id].heaviest_weight[0] != 0) fprintf(stdout,"%c",improve_char256_table[graph->node[node_id].heaviest_weight[0]]);
+                if(pri_node != 0 && graph->node[node_id].heaviest_weight[graph->node[pri_node].base] != 0) fprintf(stdout,"%c",improve_char256_table[graph->node[node_id].heaviest_weight[graph->node[pri_node].base]]);
                 else{
                     if(graph->node[node_id].base & 1) fprintf(stdout,"A");
                     else if (graph->node[node_id].base & 2) fprintf(stdout,"C");
@@ -118,17 +124,20 @@ static inline void abpoa_print_cigar(int n_cigar, abpoa_cigar_t *cigar, abpoa_gr
                     else if (graph->node[node_id].base & 8) fprintf(stdout,"T");
                     else fprintf(stdout,"N");
                 }
-            }
-            //fprintf(stdout,"");
+                
+            } */
             n[op] += 1;
             pri_node = node_id;
         } else if (op == ABPOA_CDEL) {
-          //  index_i = abpoa_graph_node_id_to_index(graph, node_id);
-          //  printf("%d%c:%d\t", len, ABPOA_CIGAR_STR[op], index_i);
-          
-            if(graph->node[node_id].isok ==1) fprintf(stdout,"%c",improve_char256_table[graph->node[node_id].base]);
+            index_i = abpoa_graph_node_id_to_index(graph, node_id);
+            //fprintf(stdout,"%d%c:%d\t", len, ABPOA_CIGAR_STR[op], index_i);
+       //   fprintf(stdout,"%d%c",len, ABPOA_CIGAR_STR[op]);
+      //   fprintf(stdout,"%d%c(%d/%d)",len, ABPOA_CIGAR_STR[op],index_i,node_id);
+          fprintf(stdout,"%d%c(%d)",len, ABPOA_CIGAR_STR[op],node_id);
+           if(graph->node[node_id].isok == 2)fprintf(stdout,"!");
+         /*  if(graph->node[node_id].isok ==1) fprintf(stdout,"%c",improve_char256_table[graph->node[node_id].base]);
             else{
-                if(pri_node != 0 && graph->node[node_id].heaviest_weight[0] != 0) fprintf(stdout,"%c",improve_char256_table[graph->node[node_id].heaviest_weight[0]]);
+                if(pri_node != 0 && graph->node[node_id].heaviest_weight[graph->node[pri_node].base] != 0) fprintf(stdout,"%c",improve_char256_table[graph->node[node_id].heaviest_weight[graph->node[pri_node].base]]);
                 else{
                     if(graph->node[node_id].base & 1) fprintf(stdout,"A");
                     else if (graph->node[node_id].base & 2) fprintf(stdout,"C");
@@ -136,20 +145,22 @@ static inline void abpoa_print_cigar(int n_cigar, abpoa_cigar_t *cigar, abpoa_gr
                     else if (graph->node[node_id].base & 8) fprintf(stdout,"T");
                     else fprintf(stdout,"N");
                 }
-            }
+            } */
             n[op] += len;
             pri_node = node_id;
         } else if (op == ABPOA_CINS || op == ABPOA_CSOFT_CLIP || op == ABPOA_CHARD_CLIP) { 
             query_id = node_id;
-           // printf("%d%c:%d\t", len, ABPOA_CIGAR_STR[op], query_id);
+            //fprintf(stdout,"%d%c:%d\t", len, ABPOA_CIGAR_STR[op], query_id);
+            // fprintf(stdout,"%d%c",len, ABPOA_CIGAR_STR[op]);
+        fprintf(stdout,"%d%c(%d)",len, ABPOA_CIGAR_STR[op],query_id);
             n[op] += len;
         } else {
             err_fatal(__func__, "Unknown cigar operation: %s\n", op);
         }
     } fprintf(stdout,"\n");
-    /* for (i = 0; i < 6; ++i)
-        printf("%d%c ", n[i], ABPOA_CIGAR_STR[i]);
-    printf("\n"); */
+   /*  for (i = 0; i < 6; ++i)
+        fprintf(stdout,"%d%c ", n[i], ABPOA_CIGAR_STR[i]);
+    fprintf(stdout,"\n"); */
 }
 
 #ifdef __cplusplus
